@@ -39,7 +39,7 @@ export function PipelineBoard({ children }: { children: ReactNode }) {
       <div
         ref={topRef}
         onScroll={onTop}
-        className="mb-1 overflow-x-auto overflow-y-hidden"
+        className="sticky top-0 z-20 mb-1 border-b bg-background pb-1 overflow-x-auto overflow-y-hidden"
         style={{ height: 16 }}
         aria-hidden
       >
