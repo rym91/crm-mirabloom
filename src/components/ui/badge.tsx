@@ -12,6 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
   ACTIVE: "bg-green-100 text-green-700",
   REJECTED: "bg-red-100 text-red-700",
   ON_HOLD: "bg-zinc-100 text-zinc-600",
+  MANUAL_REVIEW: "bg-yellow-100 text-yellow-700",
   // TaskStatus
   TODO: "bg-slate-100 text-slate-700",
   IN_PROGRESS: "bg-blue-100 text-blue-700",

@@ -22,13 +22,13 @@ export async function tagManager(formData: FormData) {
   const kind = (kindRaw in TaskKind ? kindRaw : "PRICE_REVIEW") as TaskKind;
   if (!supplierId || !managerId) return;
 
-  const [supplier, manager] = await Promise.all([
+  const [supplier, manager, session] = await Promise.all([
     prisma.supplier.findUnique({ where: { id: supplierId } }),
     prisma.user.findUnique({ where: { id: managerId } }),
+    auth(),
   ]);
   if (!supplier || !manager) return;
 
-  const session = await auth();
   await prisma.$transaction([
     prisma.task.create({
       data: buildTaggedTaskData({ kind, supplierId, supplierName: supplier.name, managerId }),

@@ -54,7 +54,7 @@ export default async function PipelinePage() {
                         {s.name}
                       </Link>
                       <div className="text-xs text-muted-foreground">
-                        {s.country ?? "—"} · {s.brands.map((b) => b.brand.name).slice(0, 2).join(", ")}
+                        {[s.country ?? "—", ...s.brands.map((b) => b.brand.name).slice(0, 2)].filter(Boolean).join(" · ")}
                       </div>
                       {col.key === "MANUAL_REVIEW" ? (
                         <div className="mt-1 rounded bg-muted/60 p-1 text-xs text-muted-foreground">
