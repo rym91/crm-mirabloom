@@ -1,17 +1,17 @@
 import type { DefaultSession } from "next-auth";
 
-// Расширяем типы Auth.js полем role (используется в authorize/jwt/session).
 declare module "next-auth" {
+  interface Session {
+    user: { id?: string; role?: string } & DefaultSession["user"];
+  }
   interface User {
     role?: string;
-  }
-  interface Session {
-    user: { role?: string } & DefaultSession["user"];
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
+    id?: string;
     role?: string;
   }
 }

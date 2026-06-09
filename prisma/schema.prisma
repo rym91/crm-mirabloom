@@ -27,6 +27,7 @@ enum SupplierStatus {
   ACTIVE
   REJECTED
   ON_HOLD
+  MANUAL_REVIEW
 }
 
 enum LeadSource {
@@ -63,6 +64,12 @@ enum SupplierTier {
   CONDITIONAL
   MARGINAL
   REJECT
+}
+
+enum TaskKind {
+  GENERIC
+  PRICE_REVIEW
+  MANUAL_REVIEW
 }
 
 enum TaskStatus {
@@ -248,6 +255,9 @@ model EmailMessage {
   messageId   String?        @unique
   inReplyTo   String?
   references  String?
+  aiClass     String?
+  aiConfidence Float?
+  aiSummary   String?  @db.Text
   sentAt      DateTime?
   receivedAt  DateTime?
   createdAt   DateTime       @default(now())
@@ -267,6 +277,7 @@ model Task {
   title           String
   description     String?
   status          TaskStatus      @default(TODO)
+  kind            TaskKind        @default(GENERIC)
   dueAt           DateTime?
   reminderAt      DateTime?
   reminderChannel ReminderChannel @default(IN_APP)
