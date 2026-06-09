@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { moveSupplier, tagManager } from "./actions";
-import { PipelineBoard } from "./board-scroll";
 
 export const dynamic = "force-dynamic";
 
@@ -37,16 +36,16 @@ export default async function PipelinePage() {
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">Пайплайн поставщиков</h1>
-      <PipelineBoard>
+      <div className="flex h-[calc(100vh-7rem)] gap-4 overflow-x-auto pb-2">
         {COLUMNS.map((col) => {
           const items = suppliers.filter((s) => s.status === col.key);
           return (
-            <div key={col.key} className="w-72 shrink-0 rounded-lg border bg-muted/30 p-3">
-              <div className="mb-3 flex items-center justify-between">
+            <div key={col.key} className="flex h-full w-72 shrink-0 flex-col rounded-lg border bg-muted/30">
+              <div className="flex items-center justify-between p-3 pb-2">
                 <span className="text-sm font-medium">{col.label}</span>
                 <Badge status={col.key}>{items.length}</Badge>
               </div>
-              <div className="space-y-2">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 pt-0">
                 {items.map((s) => {
                   const lastMsg = s.threads[0]?.messages[0];
                   return (
@@ -102,7 +101,7 @@ export default async function PipelinePage() {
             </div>
           );
         })}
-      </PipelineBoard>
+      </div>
     </div>
   );
 }
