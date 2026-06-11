@@ -72,6 +72,13 @@ enum TaskKind {
   MANUAL_REVIEW
 }
 
+enum TemplateKind {
+  INTRO
+  FOLLOWUP_1
+  FOLLOWUP_2
+  QUALIFICATION
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -215,8 +222,8 @@ model SupplierBrand {
 // ---------- EMAIL THREAD ----------
 model EmailThread {
   id            String          @id @default(cuid())
-  supplierId    String
-  supplier      Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId    String?
+  supplier      Supplier?       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   subject       String
   routingToken  String          @unique @default(cuid())
   lastMessageAt DateTime?
@@ -239,8 +246,8 @@ model EmailMessage {
   id          String         @id @default(cuid())
   threadId    String
   thread      EmailThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  supplierId  String
-  supplier    Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId  String?
+  supplier    Supplier?      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   contactId   String?
   contact     Contact?       @relation(fields: [contactId], references: [id])
   senderId    String?
@@ -354,8 +361,9 @@ model Document {
 
 // ---------- EMAIL TEMPLATE ----------
 model EmailTemplate {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
   name         String
+  kind         TemplateKind @unique @default(INTRO)
   subject      String
   bodyHtml     String
   followUpDays Int?
