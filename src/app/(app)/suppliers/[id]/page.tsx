@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateSupplierStatus, addSupplierNote } from "../actions";
+import { EmailThreadBlock } from "./email-thread";
 
 export const dynamic = "force-dynamic";
 
@@ -125,6 +126,8 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
           </CardContent>
         </Card>
       </div>
+
+      <EmailThreadBlock supplierId={supplier.id} hasContactEmail={supplier.contacts.some((c) => !!c.email)} />
 
       <Card>
         <CardHeader>
