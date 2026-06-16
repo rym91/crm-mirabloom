@@ -42,6 +42,12 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    # Next.js standalone binds to $HOSTNAME; docker auto-sets it to the container id,
+    # so the app would listen on only one network's interface → Caddy gets 502.
+    # Force all-interfaces binding. (Explicit env overrides docker's auto HOSTNAME.)
+    environment:
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
     depends_on:
       crm-db:
         condition: service_healthy
