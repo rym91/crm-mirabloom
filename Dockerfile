@@ -26,13 +26,11 @@ RUN groupadd -r nodejs && useradd -r -g nodejs nextjs
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
-# Prisma: движок + клиент + CLI для migrate deploy на старте
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=build /app/node_modules/prisma ./node_modules/prisma
+# Полный node_modules в рантайме: гарантирует наличие prisma CLI (db push на старте)
+# и любых рантайм-зависимостей, не попавших в standalone-трассировку.
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
 COPY docker-entrypoint.sh ./
-
 USER nextjs
 EXPOSE 3000
 ENTRYPOINT ["sh", "./docker-entrypoint.sh"]
