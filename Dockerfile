@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # ---- build ----
 FROM node:22-slim AS build
