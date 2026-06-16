@@ -12,18 +12,19 @@ export class AIDisabledError extends Error {
   }
 }
 
-type Provider = "anthropic" | "agent-sdk" | "off";
+type Provider = "openai" | "anthropic" | "agent-sdk" | "off";
 
 /** Pick the AI backend.
- *  - explicit AI_PROVIDER wins ("anthropic" | "agent-sdk" | "off")
- *  - else: ANTHROPIC_API_KEY present → official API
- *  - else: CLAUDE_CODE_OAUTH_TOKEN present → Agent SDK (subscription)
+ *  - explicit AI_PROVIDER wins ("openai" | "anthropic" | "agent-sdk" | "off")
+ *  - else: OPENAI_API_KEY present → OpenAI
+ *  - else: ANTHROPIC_API_KEY present → Anthropic official API
  *  - else: local dev default → Agent SDK (uses local Claude Code login)
  *  NB: the Agent SDK spawns the `claude` CLI and is unreliable in a headless
- *  container, so on the server set AI_PROVIDER=anthropic (API key) or =off. */
+ *  container, so on the server set AI_PROVIDER=openai / =anthropic / =off. */
 function resolveProvider(): Provider {
   const p = (process.env.AI_PROVIDER || "").trim().toLowerCase();
-  if (p === "anthropic" || p === "agent-sdk" || p === "off") return p;
+  if (p === "openai" || p === "anthropic" || p === "agent-sdk" || p === "off") return p;
+  if (process.env.OPENAI_API_KEY) return "openai";
   if (process.env.ANTHROPIC_API_KEY) return "anthropic";
   return "agent-sdk";
 }
@@ -54,6 +55,46 @@ function withTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
   ]).finally(() => clearTimeout(timer)) as Promise<T>;
 }
 
+/** OpenAI model id. OPENAI_MODEL / LLM_MODEL_ID override; default = gpt-4o-mini (cheap, JSON-clean). */
+function openaiModelId(): string {
+  return process.env.OPENAI_MODEL || process.env.LLM_MODEL_ID || "gpt-4o-mini";
+}
+
+/** OpenAI Chat Completions (paid key). Plain fetch — no extra dep, robust in a container. */
+async function askOpenAI(prompt: string, opts: AskOptions, timeoutMs: number): Promise<string> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: openaiModelId(),
+        temperature: 0,
+        max_tokens: 1024,
+        messages: [
+          ...(opts.system ? [{ role: "system", content: opts.system }] : []),
+          { role: "user", content: prompt },
+        ],
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`OpenAI ${res.status}: ${body.slice(0, 200)}`);
+    }
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = (data.choices?.[0]?.message?.content || "").trim();
+    if (!text) throw new Error("LLM returned empty result");
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Official Anthropic API (paid key). Robust in a headless container. */
 async function askAnthropic(prompt: string, opts: AskOptions, timeoutMs: number): Promise<string> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
@@ -71,9 +112,10 @@ async function askAnthropic(prompt: string, opts: AskOptions, timeoutMs: number)
     },
     { timeout: timeoutMs },
   );
-  const text = (msg.content || [])
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
+  const blocks = (msg.content || []) as Array<{ type?: string; text?: string }>;
+  const text = blocks
+    .filter((b) => b.type === "text")
+    .map((b) => b.text ?? "")
     .join("")
     .trim();
   if (!text) throw new Error("LLM returned empty result");
@@ -115,6 +157,7 @@ export async function askText(prompt: string, opts: AskOptions = {}): Promise<st
   const provider = resolveProvider();
   if (provider === "off") throw new AIDisabledError();
   const timeoutMs = opts.timeoutMs ?? 60_000;
+  if (provider === "openai") return withTimeout(askOpenAI(prompt, opts, timeoutMs), timeoutMs);
   if (provider === "anthropic") return withTimeout(askAnthropic(prompt, opts, timeoutMs), timeoutMs);
   return withTimeout(askAgentSdk(prompt, opts), timeoutMs);
 }
