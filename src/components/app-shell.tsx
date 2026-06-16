@@ -3,13 +3,14 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutList, Building2, Tags, Upload, LogOut, KanbanSquare } from "lucide-react";
+import { LayoutList, Building2, Tags, Upload, LogOut, KanbanSquare, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOutAction } from "@/app/actions/auth";
 
 const NAV = [
   { href: "/tasks", label: "Задачи", icon: LayoutList },
   { href: "/pipeline", label: "Пайплайн", icon: KanbanSquare },
+  { href: "/inbox", label: "Входящие", icon: Inbox },
   { href: "/suppliers", label: "Поставщики", icon: Building2 },
   { href: "/brands", label: "Бренды", icon: Tags },
   { href: "/import", label: "Импорт", icon: Upload },

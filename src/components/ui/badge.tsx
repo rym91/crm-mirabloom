@@ -18,6 +18,11 @@ const STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: "bg-blue-100 text-blue-700",
   WAITING: "bg-amber-100 text-amber-700",
   DONE: "bg-green-100 text-green-700",
+  // Inbound AI class
+  PRICE_LIST: "bg-green-100 text-green-700",
+  QUESTION: "bg-blue-100 text-blue-700",
+  REJECTION: "bg-red-100 text-red-700",
+  OTHER: "bg-slate-100 text-slate-600",
 };
 
 export function Badge({
