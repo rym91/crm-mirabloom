@@ -1,0 +1,10 @@
+# Caddy serves crm.mirabloom.eu with automatic HTTPS (Let's Encrypt, HTTP-01).
+# Requires: DNS A-record crm.mirabloom.eu -> Contabo IP, and ports 80/443 free on the host.
+{
+	email rymarev91@gmail.com
+}
+
+crm.mirabloom.eu {
+	encode zstd gzip
+	reverse_proxy crm:3000
+}

@@ -1,0 +1,67 @@
+# Production stack for Contabo (coexists with the existing n8n).
+# Run:  docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+# Caddy fronts ТОЛЬКО crm.mirabloom.eu. If n8n already occupies host :80/:443 with its own
+# reverse proxy, do NOT start this `caddy` service — instead add the crm site to that proxy
+# (see docs/11-deploy-runbook.md, step "Reverse proxy").
+name: crm
+
+networks:
+  web:
+    external: true # shared edge network; create once: docker network create web
+  crm-internal:
+    driver: bridge
+
+volumes:
+  crm_pgdata:
+  caddy_data:
+  caddy_config:
+
+services:
+  crm-db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - crm_pgdata:/var/lib/postgresql/data
+    networks:
+      - crm-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # NO ports: — DB is reachable only on the internal network
+
+  crm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      crm-db:
+        condition: service_healthy
+    networks:
+      - crm-internal # to reach crm-db
+      - web # so Caddy can reach crm:3000
+    # NO ports: — Caddy proxies it internally as crm:3000
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # persists TLS certs — DO NOT lose (Let's Encrypt rate limits)
+      - caddy_config:/config
+    networks:
+      - web
+    depends_on:
+      - crm
