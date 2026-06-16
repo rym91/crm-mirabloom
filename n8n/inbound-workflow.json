@@ -1,0 +1,59 @@
+{
+  "name": "CRM — Inbound supplier emails",
+  "nodes": [
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "read",
+        "format": "resolved",
+        "options": { "forceReconnect": 10 }
+      },
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "credentials": { "imap": { "id": "REPLACE_WITH_IMAP_CREDENTIAL_ID", "name": "Hostinger IMAP (hello@mirabloom.eu)" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const j=$json;const h=j.headers||{};const fromText=(j.from&&(j.from.text||(j.from.value&&j.from.value[0]&&j.from.value[0].address)))||(typeof j.from==='string'?j.from:'')||'';const toText=(j.to&&(j.to.text||(j.to.value&&j.to.value[0]&&j.to.value[0].address)))||(typeof j.to==='string'?j.to:'')||'';const refs=Array.isArray(j.references)?j.references.join(' '):(j.references||h['references']||null);const atts=Array.isArray(j.attachments)?j.attachments.map(a=>a.filename||a.fileName).filter(Boolean):[];const html=typeof j.textHtml==='string'?j.textHtml:(typeof j.html==='string'?j.html:'');return {messageId:j.messageId||h['message-id']||'',inReplyTo:j.inReplyTo||h['in-reply-to']||null,references:refs,from:fromText,to:toText,subject:j.subject||'',bodyText:(typeof j.text==='string'&&j.text)?j.text:html.replace(/<[^>]+>/g,' ').trim(),attachmentNames:atts};"
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Build CRM payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://crm:3000/api/inbound-email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-CRM-Secret", "value": "PASTE_CRM_INBOUND_SECRET_HERE" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "POST to CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 300]
+    }
+  ],
+  "connections": {
+    "Email Trigger (IMAP)": { "main": [[{ "node": "Build CRM payload", "type": "main", "index": 0 }]] },
+    "Build CRM payload": { "main": [[{ "node": "POST to CRM", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

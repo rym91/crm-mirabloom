@@ -1,0 +1,36 @@
+{
+  "name": "CRM — Follow-up cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 12 }] }
+      },
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Every 12h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://crm:3000/api/cron/followups",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "x-cron-secret", "value": "PASTE_CRON_SECRET_HERE" }]
+        },
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "Run CRM follow-ups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Every 12h": { "main": [[{ "node": "Run CRM follow-ups", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
