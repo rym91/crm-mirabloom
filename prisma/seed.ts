@@ -23,7 +23,7 @@ I'm Tetiana from Mirabloom (mirabloom.eu) — a VAT-registered retailer in Spain
 
 Could you tell me who looks after wholesale/trade accounts, and send your line sheet or catalogue? We're happy to work within your pricing and channel policies.
 
-Thanks very much,
+Kind regards,
 Tetiana Rymarova
 Mirabloom · mirabloom.eu · VAT ESY9616676E`,
   },
@@ -36,7 +36,7 @@ Mirabloom · mirabloom.eu · VAT ESY9616676E`,
 
 A gentle nudge on my note below — I know enquiries like this can easily slip down a busy inbox. If trade or wholesale accounts are looked after by someone else on your side, even a quick pointer in their direction would be a real help. No urgency at all.
 
-Thanks,
+Kind regards,
 Tetiana — Mirabloom`,
   },
   {
