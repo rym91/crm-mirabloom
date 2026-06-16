@@ -34,9 +34,9 @@ Mirabloom · mirabloom.eu · VAT ESY9616676E`,
     followUpDays: 7,
     body: `Hi {{contact_name_or_team}},
 
-Just following up — we're ready to place a first {{brand}} order and reorder regularly. If you can point me to your line sheet, or the right person for trade accounts, I'll take it from there. Happy to share our company registration and trade references.
+A gentle nudge on my note below — I know enquiries like this can easily slip down a busy inbox. If trade or wholesale accounts are looked after by someone else on your side, even a quick pointer in their direction would be a real help. No urgency at all.
 
-Thanks!
+Thanks,
 Tetiana — Mirabloom`,
   },
   {
@@ -46,9 +46,9 @@ Tetiana — Mirabloom`,
     followUpDays: null,
     body: `Hi {{contact_name_or_team}},
 
-Last note from me on this — if {{brand}} wholesale isn't something you handle, could you forward this to the right contact or distributor? Otherwise I'll close it off for now and circle back another time. Thanks for your time either way.
+I'll leave it here so I'm not cluttering your inbox. If {{brand}} wholesale isn't the right fit at the moment, I completely understand — no need to reply. Should that change, or if there's a better time or person to reach, I'd be glad to pick it back up.
 
-Best regards,
+Thanks again for your time,
 Tetiana Rymarova
 Mirabloom · mirabloom.eu`,
   },
