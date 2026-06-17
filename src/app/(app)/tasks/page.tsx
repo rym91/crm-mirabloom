@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { groupTasksByDay, type DayGroup } from "@/lib/tasks";
-import { createTask, moveTask } from "./actions";
+import { createTask, moveTask, createFormTasks } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -52,10 +52,17 @@ export default async function TasksPage({
         </div>
       </div>
 
-      <form action={createTask} className="flex gap-2">
-        <Input name="title" placeholder="Новая задача…" className="max-w-md" required />
-        <Button type="submit">Добавить</Button>
-      </form>
+      <div className="flex flex-wrap items-center gap-2">
+        <form action={createTask} className="flex gap-2">
+          <Input name="title" placeholder="Новая задача…" className="max-w-md" required />
+          <Button type="submit">Добавить</Button>
+        </form>
+        <form action={createFormTasks}>
+          <Button type="submit" variant="outline" title="Создать задачи FILL_FORM для form-only поставщиков">
+            Создать задачи на формы
+          </Button>
+        </form>
+      </div>
 
       {view === "day" ? (
         <MyDay meId={meId} />

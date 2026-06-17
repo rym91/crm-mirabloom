@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { linkMessageToSupplier } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export default async function InboxPage() {
     take: 100,
     include: { thread: { include: { supplier: { select: { id: true, name: true } } } } },
   });
+  const hasOrphan = messages.some((m) => !m.thread?.supplier);
+  const suppliers = hasOrphan
+    ? await prisma.supplier.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } })
+    : [];
 
   return (
     <div className="space-y-5">
@@ -53,6 +58,32 @@ export default async function InboxPage() {
               <div className="font-medium">{m.subject || "(без темы)"}</div>
               <div className="text-xs text-muted-foreground">от {m.fromAddress}</div>
               {m.aiSummary ? <div className="mt-2 text-muted-foreground">{m.aiSummary}</div> : null}
+              {!supplier ? (
+                <form action={linkMessageToSupplier} className="mt-2 flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="messageId" value={m.id} />
+                  <select
+                    name="supplierId"
+                    required
+                    defaultValue=""
+                    className="rounded border px-2 py-1 text-xs"
+                  >
+                    <option value="" disabled>
+                      Привязать к поставщику…
+                    </option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:opacity-90"
+                  >
+                    Привязать
+                  </button>
+                </form>
+              ) : null}
             </div>
           );
         })}

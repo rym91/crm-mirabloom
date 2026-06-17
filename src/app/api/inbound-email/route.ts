@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { Prisma, type EmailThread } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { extractRoutingToken, extractMessageIds, normalizeSubject } from "@/lib/email/resolve";
+import { extractRoutingToken, extractMessageIds, normalizeSubject, extractSupplierAlias } from "@/lib/email/resolve";
 import { classifyInbound } from "@/lib/email/classify";
 import { nextStatusOnReply, nextStatusFromClassification } from "@/lib/email/route-status";
 import { createDraftForSupplier } from "@/lib/email/draft";
@@ -39,10 +39,26 @@ export async function POST(req: NextRequest) {
   const dup = await prisma.emailMessage.findUnique({ where: { messageId: body.messageId } });
   if (dup) return NextResponse.json({ ok: true, duplicate: true });
 
-  // 2) resolve thread: routingToken -> direct message-id -> subject+sender fallback -> orphan
+  // 2) resolve thread: form-alias -> routingToken -> direct message-id -> subject+sender -> orphan
   let thread: EmailThread | null = null;
+
+  // 2a) form-reply alias (To = lead-<supplierId>@<domain> via catch-all): attach to that supplier.
+  // form-only suppliers have no outgoing Message-ID, so this is the only auto-link signal.
+  let aliasSupplierId: string | null = null;
+  const aliasId = extractSupplierAlias(body.to);
+  if (aliasId) {
+    const sup = await prisma.supplier.findUnique({ where: { id: aliasId }, select: { id: true } });
+    if (sup) {
+      aliasSupplierId = sup.id;
+      thread = await prisma.emailThread.findFirst({
+        where: { supplierId: sup.id, isClosed: false },
+        orderBy: { createdAt: "asc" },
+      });
+    }
+  }
+
   const token = extractRoutingToken(body.inReplyTo, body.references);
-  if (token) thread = await prisma.emailThread.findUnique({ where: { routingToken: token } });
+  if (!thread && token) thread = await prisma.emailThread.findUnique({ where: { routingToken: token } });
   if (!thread) {
     const ids = extractMessageIds(body.inReplyTo, body.references);
     if (ids.length) {
@@ -67,7 +83,7 @@ export async function POST(req: NextRequest) {
   }
   if (!thread) {
     thread = await prisma.emailThread.create({
-      data: { supplierId: contact?.supplierId ?? null, subject: body.subject },
+      data: { supplierId: aliasSupplierId ?? contact?.supplierId ?? null, subject: body.subject },
     });
   }
 
@@ -97,6 +113,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, duplicate: true });
     }
     throw e;
+  }
+
+  // 3b) capture the reply sender as a Contact on the supplier (so the chain continues
+  // automatically — esp. for form-alias replies where the sender was unknown until now).
+  if (!contact && thread.supplierId && fromEmail) {
+    const c = await prisma.contact.create({
+      data: { supplierId: thread.supplierId, name: fromEmail.split("@")[0], email: fromEmail, isPrimary: false },
+    });
+    await prisma.emailMessage.update({ where: { id: message.id }, data: { contactId: c.id } });
   }
 
   // 4) stop follow-ups, bump thread

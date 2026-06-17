@@ -70,6 +70,7 @@ enum TaskKind {
   GENERIC
   PRICE_REVIEW
   MANUAL_REVIEW
+  FILL_FORM
 }
 
 enum TemplateKind {
