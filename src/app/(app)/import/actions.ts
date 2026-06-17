@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { LeadSource, Confidence, AuthorizedHint } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { domainOf, matchSupplierByDomain } from "@/lib/import-dedup";
 
 export type ImportResult = {
   ok: boolean;
@@ -14,18 +15,6 @@ export type ImportResult = {
   links: number;
   error?: string;
 };
-
-function domainOf(url?: string): string | null {
-  if (!url) return null;
-  const raw = url.trim();
-  if (!raw) return null;
-  try {
-    const u = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
-    return u.hostname.replace(/^www\./, "").toLowerCase();
-  } catch {
-    return raw.toLowerCase();
-  }
-}
 
 const leadMap: Record<string, LeadSource> = {
   brand_page: "BRAND_PAGE",
@@ -72,9 +61,16 @@ export async function importDistributors(
     const cacheKey = dom ?? distName.toLowerCase();
     let supplierId = supplierCache.get(cacheKey);
     if (!supplierId) {
-      const existing = await prisma.supplier.findFirst({
-        where: dom ? { website: { contains: dom } } : { name: distName },
-      });
+      // ТОЧНЫЙ матч по домену: грубо сужаем contains-запросом, затем сверяем нормализованный
+      // домен строго (иначе "acme.com" слепится с "myacme.com").
+      const existing = dom
+        ? matchSupplierByDomain(
+            await prisma.supplier.findMany({ where: { website: { contains: dom } } }),
+            dom
+          )
+        : distName
+          ? await prisma.supplier.findFirst({ where: { name: distName } })
+          : null;
       if (existing) {
         supplierId = existing.id;
       } else {
