@@ -13,6 +13,21 @@ export async function createTask(formData: FormData) {
   revalidatePath("/tasks");
 }
 
+export async function assignTask(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  const raw = formData.get("assigneeId");
+  await prisma.task.update({ where: { id }, data: { assigneeId: String(raw ?? "") || null } });
+  revalidatePath("/tasks");
+}
+
+export async function deleteTask(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await prisma.task.delete({ where: { id } });
+  revalidatePath("/tasks");
+}
+
 export async function moveTask(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");

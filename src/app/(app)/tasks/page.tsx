@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { groupTasksByDay, type DayGroup } from "@/lib/tasks";
-import { createTask, moveTask, createFormTasks } from "./actions";
+import { createTask, moveTask, createFormTasks, assignTask, deleteTask } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -93,12 +93,25 @@ async function MyDay({ meId }: { meId: string }) {
           <div className="space-y-2">
             {groups[g.key].map((t) => (
               <div key={t.id} className="rounded-md border bg-card p-2 text-sm shadow-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span>{t.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {t.dueAt ? t.dueAt.toLocaleDateString("ru-RU") : ""}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {t.dueAt ? t.dueAt.toLocaleDateString("ru-RU") : ""}
+                    </span>
+                    <form action={deleteTask}>
+                      <input type="hidden" name="id" value={t.id} />
+                      <button type="submit" title="Удалить задачу" className="text-xs text-muted-foreground hover:text-red-600">
+                        ✕
+                      </button>
+                    </form>
+                  </div>
                 </div>
+                {t.description ? (
+                  <div className="mt-1 whitespace-pre-wrap break-words text-xs text-muted-foreground">
+                    {t.description}
+                  </div>
+                ) : null}
                 <form action={moveTask} className="mt-2 flex items-center gap-1">
                   <input type="hidden" name="id" value={t.id} />
                   <Select name="status" defaultValue={t.status} className="h-7 text-xs">
@@ -168,9 +181,52 @@ async function TeamBoard({
               </div>
               <div className="space-y-2">
                 {items.map((t) => (
-                  <div key={t.id} className="rounded-md border bg-card p-2 text-sm shadow-sm">
-                    <div className="mb-1">{t.title}</div>
-                    <div className="text-xs text-muted-foreground">{t.assignee?.name ?? "—"}</div>
+                  <div key={t.id} className="space-y-2 rounded-md border bg-card p-2 text-sm shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium">{t.title}</span>
+                      <form action={deleteTask}>
+                        <input type="hidden" name="id" value={t.id} />
+                        <button
+                          type="submit"
+                          title="Удалить задачу"
+                          className="text-xs text-muted-foreground hover:text-red-600"
+                        >
+                          ✕
+                        </button>
+                      </form>
+                    </div>
+                    {t.description ? (
+                      <div className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
+                        {t.description}
+                      </div>
+                    ) : null}
+                    <form action={assignTask} className="flex items-center gap-1">
+                      <input type="hidden" name="id" value={t.id} />
+                      <Select name="assigneeId" defaultValue={t.assigneeId ?? ""} className="h-7 text-xs">
+                        <option value="">— не назначен —</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <Button type="submit" size="sm" variant="outline" className="h-7">
+                        Назначить
+                      </Button>
+                    </form>
+                    <form action={moveTask} className="flex items-center gap-1">
+                      <input type="hidden" name="id" value={t.id} />
+                      <Select name="status" defaultValue={t.status} className="h-7 text-xs">
+                        {COLUMNS.map((c) => (
+                          <option key={c.key} value={c.key}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </Select>
+                      <Button type="submit" size="sm" variant="outline" className="h-7">
+                        OK
+                      </Button>
+                    </form>
                   </div>
                 ))}
                 {items.length === 0 ? <p className="text-xs text-muted-foreground">—</p> : null}
