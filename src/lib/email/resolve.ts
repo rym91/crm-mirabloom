@@ -11,6 +11,23 @@ export function extractRoutingToken(inReplyTo?: string | null, references?: stri
   return null;
 }
 
+/**
+ * Form-reply alias. For form-only suppliers we have no outgoing Message-ID (no email address,
+ * only a web form), so a reply cannot be matched by routingToken. The manager enters
+ * `lead-<supplierId>@<domain>` in the brand's form; a catch-all delivers the reply to the
+ * monitored mailbox, and we recover the supplierId from the To address here.
+ * Returns the supplierId or null.
+ */
+export function extractSupplierAlias(...tos: (string | null | undefined)[]): string | null {
+  const text = tos.filter(Boolean).join(" ");
+  for (const addr of text.match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+/g) ?? []) {
+    const local = addr.split("@")[0];
+    const m = local.match(/^lead-([a-z0-9]+)$/i);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 export function normalizeSubject(s: string): string {
   let out = s.trim();
   for (;;) {

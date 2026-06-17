@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractRoutingToken, extractMessageIds, normalizeSubject } from "@/lib/email/resolve";
+import { extractRoutingToken, extractMessageIds, normalizeSubject, extractSupplierAlias } from "@/lib/email/resolve";
 
 describe("extractRoutingToken", () => {
   it("finds our token in In-Reply-To", () =>
@@ -13,6 +13,18 @@ describe("extractMessageIds", () => {
   it("collects bracketed ids", () =>
     expect(extractMessageIds("<a@b>", "<c@d> <e@f>")).toEqual(["<a@b>", "<c@d>", "<e@f>"]));
   it("empty on nulls", () => expect(extractMessageIds(null, undefined)).toEqual([]));
+});
+
+describe("extractSupplierAlias", () => {
+  it("recovers supplierId from a plain alias", () =>
+    expect(extractSupplierAlias("lead-cmqg123abc@mirabloom.eu")).toBe("cmqg123abc"));
+  it("recovers from a display-name To header", () =>
+    expect(extractSupplierAlias('Sales <lead-cmqg9z9@mirabloom.eu>')).toBe("cmqg9z9"));
+  it("ignores a normal address", () =>
+    expect(extractSupplierAlias("hello@mirabloom.eu")).toBeNull());
+  it("null on empty", () => expect(extractSupplierAlias(null, undefined)).toBeNull());
+  it("scans multiple recipients", () =>
+    expect(extractSupplierAlias("hello@mirabloom.eu, lead-abc123@mirabloom.eu")).toBe("abc123"));
 });
 
 describe("normalizeSubject", () => {
