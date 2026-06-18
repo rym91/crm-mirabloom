@@ -124,14 +124,14 @@ export async function importQualificationRows(rows: Row[]): Promise<QualCounts> 
       else if (disp === "REJECT") { data.status = "REJECTED"; rejected++; }
     }
     await prisma.supplier.update({ where: { id: supplier.id }, data });
-    await prisma.note.create({
-      data: {
-        body: `Квалификация (Фаза A): ${disp} — ${get("why")}. VIES ${get("vies_status")}` +
-          `${get("vies_name") ? " (" + get("vies_name") + ")" : ""}. VAT ${vat || "—"}.`,
-        entityType: "SUPPLIER",
-        entityId: supplier.id,
-      },
-    });
+    // идемпотентность: не дублируем идентичную заметку квалификации при повторном импорте CSV
+    const body =
+      `Квалификация (Фаза A): ${disp} — ${get("why")}. VIES ${get("vies_status")}` +
+      `${get("vies_name") ? " (" + get("vies_name") + ")" : ""}. VAT ${vat || "—"}.`;
+    const dup = await prisma.note.findFirst({ where: { entityType: "SUPPLIER", entityId: supplier.id, body } });
+    if (!dup) {
+      await prisma.note.create({ data: { body, entityType: "SUPPLIER", entityId: supplier.id } });
+    }
   }
   return { matched, qualified, rejected, viesValid, notMatched };
 }

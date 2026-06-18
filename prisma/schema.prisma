@@ -146,6 +146,7 @@ model Supplier {
   viesStatus     ViesStatus     @default(UNCHECKED)
   score          Int? // 0-100 скоринг (модель FBA Spain)
   tier           SupplierTier?
+  optedOut       Boolean        @default(false) // отписался / не контактировать (GDPR/compliance)
   notes          String?
   ownerId        String?
   owner          User?          @relation("SupplierOwner", fields: [ownerId], references: [id])

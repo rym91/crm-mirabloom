@@ -141,6 +141,23 @@ export async function POST(req: NextRequest) {
     data: { aiClass: cls.class, aiConfidence: cls.confidence, aiSummary: cls.summary || null },
   });
 
+  // 5b) unsubscribe request -> opt out + close thread + stop follow-ups (compliance), no auto-reply
+  const unsubRe = /(unsubscribe|opt[\s-]?out|remove me|take me off|stop sending|не\s*пиш|отпиш|удалите меня)/i;
+  if (thread.supplierId && (unsubRe.test(body.bodyText || "") || unsubRe.test(body.subject || ""))) {
+    await prisma.$transaction([
+      prisma.supplier.update({ where: { id: thread.supplierId }, data: { optedOut: true } }),
+      prisma.emailThread.update({ where: { id: thread.id }, data: { isClosed: true, followUpDueAt: null } }),
+      prisma.note.create({
+        data: {
+          body: "Авто: поставщик ОТПИСАЛСЯ (opt-out) — рассылка остановлена",
+          entityType: "SUPPLIER",
+          entityId: thread.supplierId,
+        },
+      }),
+    ]);
+    return NextResponse.json({ ok: true, threadId: thread.id, optedOut: true });
+  }
+
   // 6) auto-status (reply -> classification), notes, QUOTED task, qualification draft
   let finalStatus: string | null = null;
   if (thread.supplierId) {
