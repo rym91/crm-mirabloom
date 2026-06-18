@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { importDistributorRows, importQualificationRows } from "@/lib/import-core";
 import { currentUser } from "@/lib/authz";
+import { audit } from "@/lib/audit";
 
 export type ImportResult = {
   ok: boolean;
@@ -41,6 +42,7 @@ export async function importDistributors(
 
   const rows = parseCsv(await file.text());
   const c = await importDistributorRows(rows);
+  await audit("import.distributors", { detail: `rows=${rows.length} +suppliers=${c.suppliers} +brands=${c.brands} +links=${c.links}` });
   revalidatePath("/suppliers");
   revalidatePath("/brands");
   return { ok: true, rows: rows.length, ...c };
@@ -57,6 +59,7 @@ export async function importQualification(
 
   const rows = parseCsv(await file.text());
   const c = await importQualificationRows(rows);
+  await audit("import.qualification", { detail: `rows=${rows.length} matched=${c.matched} qualified=${c.qualified} rejected=${c.rejected}` });
   revalidatePath("/suppliers");
   revalidatePath("/pipeline");
   return { ok: true, rows: rows.length, ...c };

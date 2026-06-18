@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { nextStatusOnSend } from "@/lib/email/route-status";
 import { createFormTasksCore } from "@/lib/form-tasks";
 import { requireUser } from "@/lib/authz";
+import { audit } from "@/lib/audit";
 
 export async function createTask(formData: FormData) {
   await requireUser();
@@ -29,6 +30,7 @@ export async function deleteTask(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await prisma.task.delete({ where: { id } });
+  await audit("task.delete", { entityType: "TASK", entityId: id });
   revalidatePath("/tasks");
 }
 

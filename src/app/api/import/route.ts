@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { importDistributorRows, importQualificationRows } from "@/lib/import-core";
 import { createFormTasksCore } from "@/lib/form-tasks";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
   // form-tasks: без CSV — bulk по уже импортированным form-only поставщикам
   if (type === "form-tasks") {
     const c = await createFormTasksCore();
+    await audit("import.form-tasks", { actorLabel: "api", detail: `tagged=${c.tagged} created=${c.created}` });
     revalidatePath("/tasks");
     revalidatePath("/pipeline");
     return NextResponse.json({ ok: true, type, ...c });
@@ -57,12 +59,14 @@ export async function POST(req: NextRequest) {
   try {
     if (type === "distributors") {
       const c = await importDistributorRows(rows);
+      await audit("import.distributors", { actorLabel: "api", detail: `rows=${rows.length} +suppliers=${c.suppliers} +brands=${c.brands} +links=${c.links}` });
       revalidatePath("/suppliers");
       revalidatePath("/brands");
       return NextResponse.json({ ok: true, type, rows: rows.length, ...c });
     }
     if (type === "qualification") {
       const c = await importQualificationRows(rows);
+      await audit("import.qualification", { actorLabel: "api", detail: `rows=${rows.length} matched=${c.matched} qualified=${c.qualified} rejected=${c.rejected}` });
       revalidatePath("/suppliers");
       revalidatePath("/pipeline");
       return NextResponse.json({ ok: true, type, rows: rows.length, ...c });

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { SupplierStatus, EntityType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
+import { audit } from "@/lib/audit";
 
 export async function updateSupplierStatus(formData: FormData) {
   await requireUser();
@@ -11,6 +12,7 @@ export async function updateSupplierStatus(formData: FormData) {
   const status = String(formData.get("status") ?? "");
   if (!id || !(status in SupplierStatus)) return;
   await prisma.supplier.update({ where: { id }, data: { status: status as SupplierStatus } });
+  await audit("supplier.status", { entityType: "SUPPLIER", entityId: id, detail: status });
   revalidatePath(`/suppliers/${id}`);
   revalidatePath("/suppliers");
 }

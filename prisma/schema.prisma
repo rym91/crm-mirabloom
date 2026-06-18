@@ -389,6 +389,21 @@ model ApiSecret {
   reads      SecretRead[]
 }
 
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String? // User.id, либо null для system/api/cron
+  actorLabel String // email/имя пользователя, либо "api"/"cron"/"system"
+  action     String // напр. task.delete / import.qualification / email.send / supplier.status / supplier.optout
+  entityType String?
+  entityId   String?
+  detail     String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+}
+
 model SecretRead {
   id        String    @id @default(cuid())
   secretId  String

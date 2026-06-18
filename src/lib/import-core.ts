@@ -36,21 +36,28 @@ export async function importDistributorRows(rows: Row[]): Promise<DistributorCou
 
     const website = get("website");
     const dom = domainOf(website);
-    const cacheKey = dom ?? distName.toLowerCase();
+    const emailLc = get("contact_email").toLowerCase();
+    // идентичность как в FBA cand_key: домен -> email -> имя (не схлопываем на "Unknown"/пусто)
+    const cacheKey = dom || emailLc || distName.toLowerCase();
     let supplierId = supplierCache.get(cacheKey);
     if (!supplierId) {
-      // точный матч по домену (иначе acme.com слепится с myacme.com)
-      const existing = dom
-        ? matchSupplierByDomain(await prisma.supplier.findMany({ where: { website: { contains: dom } } }), dom)
-        : distName
-          ? await prisma.supplier.findFirst({ where: { name: distName } })
-          : null;
+      let existing: Awaited<ReturnType<typeof prisma.supplier.findFirst>> = null;
+      if (dom) {
+        // точный матч по домену (иначе acme.com слепится с myacme.com)
+        existing = matchSupplierByDomain(await prisma.supplier.findMany({ where: { website: { contains: dom } } }), dom);
+      } else if (emailLc) {
+        // email-only: стабильно матчим через существующий контакт с этим email
+        const c = await prisma.contact.findFirst({ where: { email: { equals: emailLc, mode: "insensitive" } } });
+        existing = c ? await prisma.supplier.findUnique({ where: { id: c.supplierId } }) : null;
+      } else if (distName) {
+        existing = await prisma.supplier.findFirst({ where: { name: distName } });
+      }
       if (existing) {
         supplierId = existing.id;
       } else {
         const s = await prisma.supplier.create({
           data: {
-            name: distName || dom || "Unknown",
+            name: distName || dom || (emailLc ? emailLc.split("@")[1] : null) || "Unknown",
             country: get("country") || null,
             website: website || null,
             contactFormUrl: get("contact_form_url") || null,
