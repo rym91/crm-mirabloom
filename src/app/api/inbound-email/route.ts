@@ -130,6 +130,35 @@ export async function POST(req: NextRequest) {
     data: { lastMessageAt: new Date(), lastDirection: "INBOUND", followUpDueAt: null },
   });
 
+  // 4b) bounce / DSN -> подавить упавшего адресата (deliverability hygiene), без AI/авто-ответа
+  const isBounce =
+    /mailer-daemon|postmaster|mail delivery (sub)?system/i.test(body.from || "") ||
+    /(delivery status notification|undeliverable|mail delivery failed|delivery has failed|returned mail|delivery incomplete|failure notice)/i.test(body.subject || "") ||
+    /(final-recipient:|status:\s*5\.\d|diagnostic-code:|action:\s*failed)/i.test(body.bodyText || "");
+  if (isBounce) {
+    const ours = (process.env.SMTP_USER || "").toLowerCase();
+    const emails = [
+      ...new Set((body.bodyText || "").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)?.map((e) => e.toLowerCase()) ?? []),
+    ].filter((e) => e !== ours && !/mailer-daemon|postmaster/.test(e));
+    const contacts = emails.length
+      ? await prisma.contact.findMany({ where: { email: { in: emails, mode: "insensitive" } } })
+      : [];
+    for (const c of contacts) {
+      await prisma.$transaction([
+        prisma.supplier.update({ where: { id: c.supplierId }, data: { optedOut: true } }),
+        prisma.emailThread.updateMany({ where: { supplierId: c.supplierId, isClosed: false }, data: { followUpDueAt: null } }),
+        prisma.note.create({
+          data: {
+            body: `Авто: BOUNCE на ${c.email} — адрес подавлен (optedOut), follow-up остановлен`,
+            entityType: "SUPPLIER",
+            entityId: c.supplierId,
+          },
+        }),
+      ]);
+    }
+    return NextResponse.json({ ok: true, bounce: true, suppressed: contacts.length });
+  }
+
   // 5) classify (fail-safe inside) + persist
   const cls = await classifyInbound({
     subject: body.subject,
