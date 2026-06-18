@@ -7,17 +7,21 @@ import { createDraftForSupplier, sendDraftMessage } from "@/lib/email/draft";
 
 export const dynamic = "force-dynamic";
 
+// Только header x-cron-secret (без ?secret= — не течёт в логи/прокси). sha256→timingSafeEqual.
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET ?? "";
-  const got = req.headers.get("x-cron-secret") ?? req.nextUrl.searchParams.get("secret") ?? "";
-  if (!secret || got.length !== secret.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(secret));
+  if (!secret) return false;
+  const got = req.headers.get("x-cron-secret") ?? "";
+  const a = crypto.createHash("sha256").update(got).digest();
+  const b = crypto.createHash("sha256").update(secret).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 async function run() {
+  const now = new Date();
   const due = await prisma.emailThread.findMany({
     where: {
-      followUpDueAt: { lte: new Date() },
+      followUpDueAt: { lte: now },
       isClosed: false,
       lastDirection: "OUTBOUND",
       supplierId: { not: null },
@@ -27,23 +31,30 @@ async function run() {
   let sent = 0;
   let skipped = 0;
   for (const t of due) {
-    const clearDue = () => prisma.emailThread.update({ where: { id: t.id }, data: { followUpDueAt: null } });
-    if (!t.supplier || isManualLocked(t.supplier.status)) { await clearDue(); skipped++; continue; }
+    // Атомарный claim: гасим followUpDueAt только если он ещё «due». Если параллельный запуск
+    // уже забрал тред — count===0 → пропускаем (нет двойной отправки).
+    const claim = await prisma.emailThread.updateMany({
+      where: { id: t.id, followUpDueAt: { lte: now } },
+      data: { followUpDueAt: null },
+    });
+    if (claim.count !== 1) { skipped++; continue; }
+
+    if (!t.supplier || isManualLocked(t.supplier.status)) { skipped++; continue; }
     const nxt = nextFollowUp(t.followUpStep);
-    if (!nxt) { await clearDue(); skipped++; continue; }
+    if (!nxt) { skipped++; continue; }
     const draft = await createDraftForSupplier(t.supplierId!, nxt.kind, { skipHook: true });
-    if (!draft.ok) { await clearDue(); skipped++; continue; }
+    if (!draft.ok) { skipped++; continue; } // напр. opted-out -> createDraft вернёт !ok → пропуск
     const res = await sendDraftMessage(draft.messageDbId);
     if (!res.ok) {
-      // transient failure: retry tomorrow instead of hot-looping
-      await prisma.emailThread.update({ where: { id: t.id }, data: { followUpDueAt: addDays(new Date(), 1) } });
+      // транзиентный сбой: повтор завтра, а не горячий цикл
+      await prisma.emailThread.update({ where: { id: t.id }, data: { followUpDueAt: addDays(now, 1) } });
       skipped++;
       continue;
     }
     const after = nextFollowUp(nxt.step);
     await prisma.emailThread.update({
       where: { id: t.id },
-      data: { followUpStep: nxt.step, followUpDueAt: after ? addDays(new Date(), after.afterDays) : null },
+      data: { followUpStep: nxt.step, followUpDueAt: after ? addDays(now, after.afterDays) : null },
     });
     sent++;
   }

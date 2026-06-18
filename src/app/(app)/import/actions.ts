@@ -3,6 +3,7 @@
 import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { importDistributorRows, importQualificationRows } from "@/lib/import-core";
+import { currentUser } from "@/lib/authz";
 
 export type ImportResult = {
   ok: boolean;
@@ -34,6 +35,7 @@ export async function importDistributors(
   formData: FormData
 ): Promise<ImportResult> {
   const empty: ImportResult = { ok: false, rows: 0, brands: 0, suppliers: 0, contacts: 0, links: 0 };
+  if (!(await currentUser())) return { ...empty, error: "Не авторизовано" };
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { ...empty, error: "Файл не выбран" };
 
@@ -49,6 +51,7 @@ export async function importQualification(
   formData: FormData
 ): Promise<QualResult> {
   const empty: QualResult = { ok: false, rows: 0, matched: 0, qualified: 0, rejected: 0, viesValid: 0, notMatched: 0 };
+  if (!(await currentUser())) return { ...empty, error: "Не авторизовано" };
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { ...empty, error: "Файл не выбран" };
 

@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { SupplierStatus, TaskKind, EntityType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { requireUser } from "@/lib/authz";
 import { buildTaggedTaskData } from "@/lib/tasks";
 
 export async function moveSupplier(formData: FormData) {
+  await requireUser();
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!id || !(status in SupplierStatus)) return;
@@ -16,6 +18,7 @@ export async function moveSupplier(formData: FormData) {
 }
 
 export async function tagManager(formData: FormData) {
+  await requireUser();
   const supplierId = String(formData.get("supplierId") ?? "");
   const managerId = String(formData.get("managerId") ?? "");
   const kindRaw = String(formData.get("kind") ?? "PRICE_REVIEW");

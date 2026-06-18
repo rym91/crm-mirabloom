@@ -22,6 +22,7 @@ export async function createDraftForSupplier(
     },
   });
   if (!supplier) return { ok: false, error: "Поставщик не найден" };
+  if (supplier.optedOut) return { ok: false, error: "Поставщик отписан (opt-out) — рассылка запрещена" };
   const contact = supplier.contacts.find((c) => c.email);
   if (!contact?.email) return { ok: false, error: "У поставщика нет контакта с email" };
   const template = await prisma.emailTemplate.findUnique({ where: { kind } });
@@ -41,7 +42,8 @@ export async function createDraftForSupplier(
   }
   const vars = { brand, contact: contactName, openingHook };
   const subject = renderTemplate(template.subject, vars);
-  const bodyText = renderTemplate(template.bodyHtml, vars); // bodyHtml column = plain-text template source
+  const bodyText = renderTemplate(template.bodyHtml, vars) + // bodyHtml column = plain-text template source
+    "\n\n—\nIf you'd prefer not to receive these emails, just reply 'unsubscribe' and we'll remove you.";
 
   let thread = supplier.threads[0] ?? null;
   if (!thread) {
@@ -83,6 +85,7 @@ export async function sendDraftMessage(messageDbId: string): Promise<{ ok: boole
   });
   if (!msg || !msg.thread) return { ok: false, error: "Черновик не найден" };
   if (msg.status !== "DRAFT") return { ok: true }; // idempotent
+  if (msg.supplier?.optedOut) return { ok: false, error: "Поставщик отписан (opt-out) — не отправлено" };
 
   const res = await sendEmail({
     to: msg.toAddress,

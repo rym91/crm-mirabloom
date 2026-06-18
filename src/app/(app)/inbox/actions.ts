@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { nextStatusOnReply } from "@/lib/email/route-status";
+import { requireUser } from "@/lib/authz";
 
 /**
  * Ручная привязка осиротевшего входящего к поставщику (фолбэк, когда авто-алиас не сработал).
@@ -10,6 +11,7 @@ import { nextStatusOnReply } from "@/lib/email/route-status";
  * цепочка матчилась сама), двигает статус → REPLIED (с уважением к ручной блокировке).
  */
 export async function linkMessageToSupplier(formData: FormData): Promise<void> {
+  await requireUser();
   const messageId = String(formData.get("messageId") ?? "");
   const supplierId = String(formData.get("supplierId") ?? "");
   if (!messageId || !supplierId) return;

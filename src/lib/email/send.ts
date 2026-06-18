@@ -52,6 +52,7 @@ export async function sendEmail(
     const { to, subject, testMode } = applyTestMode(input.to, input.subject, env);
     if (!env.SMTP_PASS) return { ok: false, error: "SMTP_PASS is not set" };
     const transport = makeTransport(env);
+    const unsub = env.MAIL_UNSUBSCRIBE || env.SMTP_USER || "";
     await transport.sendMail({
       messageId: input.messageId,
       from: env.MAIL_FROM ?? env.SMTP_USER,
@@ -62,6 +63,7 @@ export async function sendEmail(
       html: input.html,
       inReplyTo: input.inReplyTo || undefined,
       references: input.references || undefined,
+      headers: unsub ? { "List-Unsubscribe": `<mailto:${unsub}?subject=unsubscribe>` } : undefined,
     });
     return { ok: true, usedTo: to, testMode };
   } catch (e) {

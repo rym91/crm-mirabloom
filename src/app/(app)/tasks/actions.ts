@@ -5,8 +5,10 @@ import { TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { nextStatusOnSend } from "@/lib/email/route-status";
 import { createFormTasksCore } from "@/lib/form-tasks";
+import { requireUser } from "@/lib/authz";
 
 export async function createTask(formData: FormData) {
+  await requireUser();
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return;
   await prisma.task.create({ data: { title } });
@@ -14,6 +16,7 @@ export async function createTask(formData: FormData) {
 }
 
 export async function assignTask(formData: FormData) {
+  await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   const raw = formData.get("assigneeId");
@@ -22,6 +25,7 @@ export async function assignTask(formData: FormData) {
 }
 
 export async function deleteTask(formData: FormData) {
+  await requireUser();
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await prisma.task.delete({ where: { id } });
@@ -29,6 +33,7 @@ export async function deleteTask(formData: FormData) {
 }
 
 export async function moveTask(formData: FormData) {
+  await requireUser();
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!id || !(status in TaskStatus)) return;
@@ -60,6 +65,7 @@ export async function moveTask(formData: FormData) {
 
 /** Bulk: создать задачи FILL_FORM + тег outreach:form для form-only поставщиков (общее ядро). */
 export async function createFormTasks(): Promise<void> {
+  await requireUser();
   await createFormTasksCore();
   revalidatePath("/tasks");
   revalidatePath("/pipeline");

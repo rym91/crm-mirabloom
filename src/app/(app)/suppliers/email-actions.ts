@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { TemplateKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createDraftForSupplier, sendDraftMessage } from "@/lib/email/draft";
+import { requireUser } from "@/lib/authz";
 
 function revalidateSupplier(supplierId: string) {
   revalidatePath(`/suppliers/${supplierId}`);
@@ -11,6 +12,7 @@ function revalidateSupplier(supplierId: string) {
 }
 
 export async function prepareDraft(formData: FormData) {
+  await requireUser();
   const supplierId = String(formData.get("supplierId") ?? "");
   const kindRaw = String(formData.get("kind") ?? "INTRO");
   const kind = (kindRaw in TemplateKind ? kindRaw : "INTRO") as TemplateKind;
@@ -20,6 +22,7 @@ export async function prepareDraft(formData: FormData) {
 }
 
 export async function confirmAndSend(formData: FormData) {
+  await requireUser();
   const id = String(formData.get("id") ?? "");
   const supplierId = String(formData.get("supplierId") ?? "");
   if (!id) return;
@@ -28,6 +31,7 @@ export async function confirmAndSend(formData: FormData) {
 }
 
 export async function discardDraft(formData: FormData) {
+  await requireUser();
   const id = String(formData.get("id") ?? "");
   const supplierId = String(formData.get("supplierId") ?? "");
   if (!id) return;
