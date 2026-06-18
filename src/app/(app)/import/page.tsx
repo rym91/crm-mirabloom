@@ -1,14 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { importDistributors, type ImportResult } from "./actions";
+import { importDistributors, importQualification, type ImportResult, type QualResult } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const initial: ImportResult | undefined = undefined;
+const initialQ: QualResult | undefined = undefined;
 
 export default function ImportPage() {
   const [result, action, pending] = useActionState(importDistributors, initial);
+  const [qres, qaction, qpending] = useActionState(importQualification, initialQ);
 
   return (
     <div className="max-w-xl space-y-6">
@@ -37,6 +39,36 @@ export default function ImportPage() {
               </p>
             ) : (
               <p className="mt-4 text-sm text-destructive">Ошибка: {result.error}</p>
+            )
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>qualification.csv (Фаза A)</CardTitle>
+          <CardDescription>
+            Загрузите CSV квалификации (sourcing/…_qualification.csv). Сопоставление по домену/имени:
+            проставит VIES-статус, чистый VAT и заметку; CANDIDATE → QUALIFIED или REJECTED по диспозиции
+            (статусы выше CANDIDATE не трогаются).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={qaction} className="space-y-3">
+            <input type="file" name="file" accept=".csv,text/csv" required className="block text-sm" />
+            <Button type="submit" disabled={qpending}>
+              {qpending ? "Импорт…" : "Импортировать квалификацию"}
+            </Button>
+          </form>
+
+          {qres ? (
+            qres.ok ? (
+              <p className="mt-4 text-sm text-green-700">
+                Готово: строк {qres.rows}, сопоставлено {qres.matched}, → QUALIFIED {qres.qualified}, → REJECTED{" "}
+                {qres.rejected}, VIES-VALID {qres.viesValid}, не найдено {qres.notMatched}.
+              </p>
+            ) : (
+              <p className="mt-4 text-sm text-destructive">Ошибка: {qres.error}</p>
             )
           ) : null}
         </CardContent>

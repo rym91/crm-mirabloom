@@ -2,7 +2,7 @@
 
 import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
-import { LeadSource, Confidence, AuthorizedHint } from "@prisma/client";
+import { LeadSource, Confidence, AuthorizedHint, ViesStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { domainOf, matchSupplierByDomain } from "@/lib/import-dedup";
 
@@ -124,4 +124,73 @@ export async function importDistributors(
   revalidatePath("/suppliers");
   revalidatePath("/brands");
   return { ok: true, rows: rows.length, brands, suppliers, contacts, links };
+}
+
+// ---------- Импорт квалификации (Фаза A) ----------
+export type QualResult = {
+  ok: boolean;
+  rows: number;
+  matched: number;
+  qualified: number;
+  rejected: number;
+  viesValid: number;
+  notMatched: number;
+  error?: string;
+};
+
+const viesMap: Record<string, ViesStatus> = { VALID: "VALID", INVALID: "INVALID" };
+
+export async function importQualification(
+  _prev: QualResult | undefined,
+  formData: FormData
+): Promise<QualResult> {
+  const empty: QualResult = { ok: false, rows: 0, matched: 0, qualified: 0, rejected: 0, viesValid: 0, notMatched: 0 };
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { ...empty, error: "Файл не выбран" };
+
+  const parsed = Papa.parse<Record<string, string>>(await file.text(), { header: true, skipEmptyLines: true });
+  const rows = parsed.data ?? [];
+  let matched = 0, qualified = 0, rejected = 0, viesValid = 0, notMatched = 0;
+
+  for (const r of rows) {
+    const get = (k: string) => (r[k] ?? "").trim();
+    const website = get("website");
+    const name = get("supplier");
+    if (!website && !name) continue;
+
+    const dom = domainOf(website);
+    let supplier: Awaited<ReturnType<typeof prisma.supplier.findFirst>> = null;
+    if (dom) {
+      const sameDom = await prisma.supplier.findMany({ where: { website: { contains: dom } } });
+      supplier = matchSupplierByDomain(sameDom, dom);
+    }
+    if (!supplier && name) supplier = await prisma.supplier.findFirst({ where: { name } });
+    if (!supplier) { notMatched++; continue; }
+    matched++;
+
+    const vies = viesMap[get("vies_status").toUpperCase()] ?? "UNCHECKED";
+    const vat = get("vat_id");
+    const disp = get("disposition").toUpperCase();
+    if (vies === "VALID") viesValid++;
+
+    const data: { viesStatus: ViesStatus; vatNumber?: string; status?: "QUALIFIED" | "REJECTED" } = { viesStatus: vies };
+    if (vat) data.vatNumber = vat;
+    if (supplier.status === "CANDIDATE") {
+      if (disp === "QUALIFIED") { data.status = "QUALIFIED"; qualified++; }
+      else if (disp === "REJECT") { data.status = "REJECTED"; rejected++; }
+    }
+    await prisma.supplier.update({ where: { id: supplier.id }, data });
+    await prisma.note.create({
+      data: {
+        body: `Квалификация (Фаза A): ${disp} — ${get("why")}. VIES ${get("vies_status")}` +
+          `${get("vies_name") ? " (" + get("vies_name") + ")" : ""}. VAT ${vat || "—"}.`,
+        entityType: "SUPPLIER",
+        entityId: supplier.id,
+      },
+    });
+  }
+
+  revalidatePath("/suppliers");
+  revalidatePath("/pipeline");
+  return { ok: true, rows: rows.length, matched, qualified, rejected, viesValid, notMatched };
 }
