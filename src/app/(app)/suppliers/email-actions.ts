@@ -5,6 +5,7 @@ import { TemplateKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createDraftForSupplier, sendDraftMessage } from "@/lib/email/draft";
 import { requireUser } from "@/lib/authz";
+import { audit } from "@/lib/audit";
 
 function revalidateSupplier(supplierId: string) {
   revalidatePath(`/suppliers/${supplierId}`);
@@ -26,7 +27,8 @@ export async function confirmAndSend(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const supplierId = String(formData.get("supplierId") ?? "");
   if (!id) return;
-  await sendDraftMessage(id);
+  const res = await sendDraftMessage(id);
+  await audit("email.send", { entityType: "SUPPLIER", entityId: supplierId || undefined, detail: res.ok ? "sent" : `fail: ${res.error}` });
   if (supplierId) revalidateSupplier(supplierId);
 }
 

@@ -6,6 +6,7 @@ import { extractRoutingToken, extractMessageIds, normalizeSubject, extractSuppli
 import { classifyInbound } from "@/lib/email/classify";
 import { nextStatusOnReply, nextStatusFromClassification } from "@/lib/email/route-status";
 import { createDraftForSupplier } from "@/lib/email/draft";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +156,7 @@ export async function POST(req: NextRequest) {
           },
         }),
       ]);
+      await audit("supplier.optout", { actorLabel: "system", entityType: "SUPPLIER", entityId: c.supplierId, detail: `bounce ${c.email}` });
     }
     return NextResponse.json({ ok: true, bounce: true, suppressed: contacts.length });
   }
@@ -184,6 +186,7 @@ export async function POST(req: NextRequest) {
         },
       }),
     ]);
+    await audit("supplier.optout", { actorLabel: "system", entityType: "SUPPLIER", entityId: thread.supplierId, detail: "unsubscribe" });
     return NextResponse.json({ ok: true, threadId: thread.id, optedOut: true });
   }
 
