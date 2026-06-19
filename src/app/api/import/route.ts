@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { revalidatePath } from "next/cache";
 import { importDistributorRows, importQualificationRows } from "@/lib/import-core";
 import { createFormTasksCore } from "@/lib/form-tasks";
+import { bulkIntroCore } from "@/lib/bulk-intro";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,14 @@ export async function POST(req: NextRequest) {
     revalidatePath("/tasks");
     revalidatePath("/pipeline");
     return NextResponse.json({ ok: true, type, ...c });
+  }
+
+  if (type === "bulk-intro") {
+    const limit = Number(req.nextUrl.searchParams.get("limit") || 10);
+    const c = await bulkIntroCore(Number.isFinite(limit) ? limit : 10);
+    revalidatePath("/pipeline");
+    revalidatePath("/suppliers");
+    return NextResponse.json({ type, ...c });
   }
 
   const len = Number(req.headers.get("content-length") || 0);
