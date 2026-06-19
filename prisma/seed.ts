@@ -15,7 +15,7 @@ const TEMPLATES: { kind: TemplateKind; name: string; subject: string; body: stri
     name: "v2 Intro — wholesale account",
     subject: "Wholesale account — {{brand}} for Spain & EU",
     followUpDays: 3,
-    body: `Hi {{contact_name_or_team}},
+    body: `Hello,
 
 {{opening_hook}}
 
@@ -32,7 +32,7 @@ Mirabloom · mirabloom.eu · VAT ESY9616676E`,
     name: "v2 Follow-up #1 (+3d)",
     subject: "Re: Wholesale account — {{brand}} for Spain & EU",
     followUpDays: 7,
-    body: `Hi {{contact_name_or_team}},
+    body: `Hello,
 
 A gentle nudge on my note below — I know enquiries like this can easily slip down a busy inbox. If trade or wholesale accounts are looked after by someone else on your side, even a quick pointer in their direction would be a real help. No urgency at all.
 
@@ -44,7 +44,7 @@ Tetiana — Mirabloom`,
     name: "v2 Follow-up #2 (+7d, breakup)",
     subject: "Re: Wholesale account — {{brand}} for Spain & EU",
     followUpDays: null,
-    body: `Hi {{contact_name_or_team}},
+    body: `Hello,
 
 I'll leave it here so I'm not cluttering your inbox. If {{brand}} wholesale isn't the right fit at the moment, I completely understand — no need to reply. Should that change, or if there's a better time or person to reach, I'd be glad to pick it back up.
 
@@ -57,7 +57,7 @@ Mirabloom · mirabloom.eu`,
     name: "v2 Qualification (after reply)",
     subject: "Re: Wholesale account — {{brand}} for Spain & EU",
     followUpDays: null,
-    body: `Hi {{contact_name_or_team}},
+    body: `Hello,
 
 Thanks for getting back to me. To set up the account and prepare a first order, could you share:
 
