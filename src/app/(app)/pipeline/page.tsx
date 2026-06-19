@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { moveSupplier, tagManager } from "./actions";
+import { BulkIntroButton } from "@/components/bulk-intro-button";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,10 @@ export default async function PipelinePage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold">Пайплайн поставщиков</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">Пайплайн поставщиков</h1>
+        <BulkIntroButton />
+      </div>
       <div className="flex h-[calc(100vh-7rem)] gap-4 overflow-x-auto pb-2">
         {COLUMNS.map((col) => {
           const items = suppliers.filter((s) => s.status === col.key);

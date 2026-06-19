@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { SupplierStatus, TaskKind, EntityType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { requireUser } from "@/lib/authz";
+import { requireUser, currentUser } from "@/lib/authz";
 import { audit } from "@/lib/audit";
+import { bulkIntroCore, type BulkIntroResult } from "@/lib/bulk-intro";
 import { buildTaggedTaskData } from "@/lib/tasks";
 
 export async function moveSupplier(formData: FormData) {
@@ -17,6 +18,15 @@ export async function moveSupplier(formData: FormData) {
   await audit("supplier.status", { entityType: "SUPPLIER", entityId: id, detail: status });
   revalidatePath("/pipeline");
   revalidatePath(`/suppliers/${id}`);
+}
+
+export async function bulkIntro(_prev: BulkIntroResult | undefined, formData: FormData): Promise<BulkIntroResult> {
+  if (!(await currentUser())) return { ok: false, processed: 0, sent: 0, failed: 0, skipped: 0, error: "Не авторизовано" };
+  const n = Number(formData.get("limit") ?? 5);
+  const res = await bulkIntroCore(Number.isFinite(n) ? n : 5);
+  revalidatePath("/pipeline");
+  revalidatePath("/suppliers");
+  return res;
 }
 
 export async function tagManager(formData: FormData) {
