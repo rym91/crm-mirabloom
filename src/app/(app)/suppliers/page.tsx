@@ -5,6 +5,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,11 @@ export default async function SuppliersPage({
   const suppliers = await prisma.supplier.findMany({
     where: filter ? { status: filter } : {},
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { brands: true, contacts: true } } },
+    include: {
+      _count: { select: { brands: true, contacts: true } },
+      tags: { include: { tag: true } },
+      threads: { select: { lastDirection: true, isClosed: true } },
+    },
   });
 
   return (
@@ -51,6 +56,7 @@ export default async function SuppliersPage({
         <THead>
           <TR>
             <TH>Поставщик</TH>
+            <TH>Сигналы</TH>
             <TH>Страна</TH>
             <TH>Статус</TH>
             <TH>Tier</TH>
@@ -67,6 +73,12 @@ export default async function SuppliersPage({
                   {s.name}
                 </Link>
               </TD>
+              <TD>
+                <SupplierSignals
+                  newReply={hasNewReply(s.threads)}
+                  tags={s.tags.map((t) => ({ name: t.tag.name }))}
+                />
+              </TD>
               <TD>{s.country ?? "—"}</TD>
               <TD>
                 <Badge status={s.status}>{s.status}</Badge>
@@ -79,7 +91,7 @@ export default async function SuppliersPage({
           ))}
           {suppliers.length === 0 ? (
             <TR>
-              <TD colSpan={7} className="text-center text-muted-foreground">
+              <TD colSpan={8} className="text-center text-muted-foreground">
                 Пусто. Импортируйте distributor_candidates.csv на странице «Импорт».
               </TD>
             </TR>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateSupplierStatus, addSupplierNote } from "../actions";
 import { EmailThreadBlock } from "./email-thread";
+import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,12 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
 
   const supplier = await prisma.supplier.findUnique({
     where: { id },
-    include: { contacts: true, brands: { include: { brand: true } } },
+    include: {
+      contacts: true,
+      brands: { include: { brand: true } },
+      tags: { include: { tag: true } },
+      threads: { select: { lastDirection: true, isClosed: true } },
+    },
   });
   if (!supplier) notFound();
 
@@ -37,9 +43,13 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold">{supplier.name}</h1>
           <Badge status={supplier.status}>{supplier.status}</Badge>
+          <SupplierSignals
+            newReply={hasNewReply(supplier.threads)}
+            tags={supplier.tags.map((t) => ({ name: t.tag.name }))}
+          />
         </div>
         <form action={updateSupplierStatus} className="flex items-center gap-2">
           <input type="hidden" name="id" value={supplier.id} />

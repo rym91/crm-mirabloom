@@ -6,6 +6,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { moveSupplier, tagManager } from "./actions";
 import { BulkIntroButton } from "@/components/bulk-intro-button";
+import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function PipelinePage() {
       orderBy: { updatedAt: "desc" },
       include: {
         brands: { include: { brand: true } },
+        tags: { include: { tag: true } },
         threads: { orderBy: { lastMessageAt: "desc" }, take: 1, include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } } },
       },
     }),
@@ -60,6 +62,11 @@ export default async function PipelinePage() {
                       <div className="text-xs text-muted-foreground">
                         {[s.country ?? "—", ...s.brands.map((b) => b.brand.name).slice(0, 2)].filter(Boolean).join(" · ")}
                       </div>
+                      <SupplierSignals
+                        newReply={hasNewReply(s.threads)}
+                        tags={s.tags.map((t) => ({ name: t.tag.name }))}
+                        className="mt-1"
+                      />
                       {col.key === "MANUAL_REVIEW" ? (
                         <div className="mt-1 rounded bg-muted/60 p-1 text-xs text-muted-foreground">
                           {lastMsg ? `✉ ${lastMsg.subject}` : "Переписки пока нет"}

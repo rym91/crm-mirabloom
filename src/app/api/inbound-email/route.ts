@@ -6,6 +6,7 @@ import { extractRoutingToken, extractMessageIds, normalizeSubject, extractSuppli
 import { classifyInbound } from "@/lib/email/classify";
 import { nextStatusOnReply, nextStatusFromClassification } from "@/lib/email/route-status";
 import { createDraftForSupplier } from "@/lib/email/draft";
+import { assignClassTag } from "@/lib/email/tags";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -172,9 +173,15 @@ export async function POST(req: NextRequest) {
     data: { aiClass: cls.class, aiConfidence: cls.confidence, aiSummary: cls.summary || null },
   });
 
-  // 5b) unsubscribe request -> opt out + close thread + stop follow-ups (compliance), no auto-reply
-  const unsubRe = /(unsubscribe|opt[\s-]?out|remove me|take me off|stop sending|не\s*пиш|отпиш|удалите меня)/i;
-  if (thread.supplierId && (unsubRe.test(body.bodyText || "") || unsubRe.test(body.subject || ""))) {
+  // 5b) unsubscribe REQUEST -> opt out + close thread + stop follow-ups (compliance), no auto-reply.
+  // NB: must be a directed request, NOT the bare word "unsubscribe"/"opt-out" — that appears in the
+  // GDPR footer of almost every corporate email and was false-flagging real replies as opt-outs.
+  const strongUnsub =
+    /(remove me|take me off|do not (contact|e-?mail) me|please stop|stop (sending|e-?mailing|contacting)|unsubscribe me|please remove|не\s*пиш(и|ите)\s*(мне|нам)|отпиш(и|ите)|удалите меня|удалите мой|больше не пишите)/i;
+  const subjUnsub = /^\s*(unsubscribe|opt[\s-]?out|отписаться|отписка)\s*$/i;
+  const unsubMatch =
+    strongUnsub.test(body.bodyText || "") || strongUnsub.test(body.subject || "") || subjUnsub.test(body.subject || "");
+  if (thread.supplierId && unsubMatch) {
     await prisma.$transaction([
       prisma.supplier.update({ where: { id: thread.supplierId }, data: { optedOut: true } }),
       prisma.emailThread.update({ where: { id: thread.id }, data: { isClosed: true, followUpDueAt: null } }),
@@ -195,6 +202,8 @@ export async function POST(req: NextRequest) {
   if (thread.supplierId) {
     const supplier = await prisma.supplier.findUnique({ where: { id: thread.supplierId } });
     if (supplier) {
+      // auto-tag by AI class (visible next to the supplier), regardless of status lock
+      await assignClassTag(supplier.id, cls.class);
       const afterReply = nextStatusOnReply(supplier.status) ?? supplier.status;
       const afterCls = nextStatusFromClassification(afterReply, cls.class, cls.confidence) ?? afterReply;
       if (afterCls !== supplier.status) {
