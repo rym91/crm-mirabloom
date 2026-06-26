@@ -15,14 +15,14 @@ export function BulkIntroButton() {
         max={100}
         defaultValue={5}
         className="h-8 w-16 rounded border px-2 text-sm"
-        title="Сколько QUALIFIED обработать за раз"
+        title="Сколько кандидатов обработать за раз (CANDIDATE + QUALIFIED с email)"
       />
       <Button
         type="submit"
         variant="outline"
         size="sm"
         disabled={pending}
-        title="Разослать intro QUALIFIED (только при EMAIL_TEST_MODE=false)"
+        title="Разослать intro кандидатам с email — CANDIDATE+QUALIFIED (только при EMAIL_TEST_MODE=false)"
       >
         {pending ? "Рассылка…" : "Разослать intro"}
       </Button>

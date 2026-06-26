@@ -12,18 +12,18 @@ export type BulkIntroResult = {
 };
 
 /**
- * Рассылка intro по QUALIFIED-поставщикам с email, throttled, рамп через limit.
- * Только при EMAIL_TEST_MODE=false (реальный режим) — иначе пометил бы CONTACTED без реальной
- * отправки и при флипе они бы не получили письмо. Идемпотентно: успешная отправка двигает статус
- * QUALIFIED→CONTACTED (см. sendDraftMessage), так что следующий прогон их не выберет. Opt-out и
- * single-open-thread учитываются внутри createDraft/sendDraft.
+ * Рассылка intro по неконтактированным поставщикам (CANDIDATE + QUALIFIED) с email, throttled,
+ * рамп через limit. Только при EMAIL_TEST_MODE=false (реальный режим) — иначе пометил бы CONTACTED
+ * без реальной отправки и при флипе они бы не получили письмо. Идемпотентно: успешная отправка
+ * двигает статус CANDIDATE/QUALIFIED→CONTACTED (см. sendDraftMessage), так что следующий прогон их
+ * не выберет. Opt-out и single-open-thread учитываются внутри createDraft/sendDraft.
  */
 export async function bulkIntroCore(limit = 10, throttleMs = 1500): Promise<BulkIntroResult> {
   if (process.env.EMAIL_TEST_MODE !== "false") {
     return { ok: false, processed: 0, sent: 0, failed: 0, skipped: 0, error: "EMAIL_TEST_MODE on — bulk отключён (тестируй поштучным сендом)" };
   }
   const suppliers = await prisma.supplier.findMany({
-    where: { status: "QUALIFIED", optedOut: false, contacts: { some: { email: { not: null } } } },
+    where: { status: { in: ["CANDIDATE", "QUALIFIED"] }, optedOut: false, contacts: { some: { email: { not: null } } } },
     orderBy: { createdAt: "asc" },
     take: Math.max(1, Math.min(limit, 100)),
     select: { id: true },
