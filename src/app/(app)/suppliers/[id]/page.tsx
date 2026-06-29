@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { updateSupplierStatus, addSupplierNote, addSupplierContact } from "../actions";
+import { updateSupplierStatus, addSupplierNote, addSupplierContact, logFormOutreach } from "../actions";
 import { EmailThreadBlock } from "./email-thread";
+import { supplierAlias } from "@/lib/email/alias";
 import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 import { StatusSubmitButton } from "@/components/status-submit-button";
 import { STATUS_LABEL } from "@/lib/status-labels";
@@ -37,6 +38,7 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
 
   const cf = (supplier.customFields as { suggestedEmails?: string[] } | null) ?? {};
   const suggested = Array.isArray(cf.suggestedEmails) ? cf.suggestedEmails.filter(Boolean) : [];
+  const alias = supplierAlias(supplier.id);
 
   const field = (label: string, value: ReactNode) => (
     <div>
@@ -170,6 +172,36 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Связь через форму</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Если пишешь поставщику через его контактную форму — вставь в поле email формы этот адрес.
+            Тогда его ответ автоматически подтянется в эту карточку как переписка:
+          </p>
+          <code className="block select-all rounded-md bg-muted p-2 font-mono text-xs">{alias}</code>
+          {supplier.contactFormUrl ? (
+            <a
+              href={supplier.contactFormUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-xs text-primary underline"
+            >
+              Открыть контактную форму ↗
+            </a>
+          ) : null}
+          <form action={logFormOutreach} className="space-y-2 border-t pt-3">
+            <input type="hidden" name="supplierId" value={supplier.id} />
+            <Textarea name="note" placeholder="Что отправил через форму (необязательно)…" rows={2} />
+            <Button type="submit" size="sm" variant="outline">
+              Отметить: написал через форму
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <EmailThreadBlock supplierId={supplier.id} hasContactEmail={supplier.contacts.some((c) => !!c.email)} />
 
