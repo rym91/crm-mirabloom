@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SupplierStatus } from "@prisma/client";
+import { SupplierStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +14,20 @@ const STATUSES = Object.values(SupplierStatus);
 export default async function SuppliersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; email?: string }>;
 }) {
   const sp = await searchParams;
   const filter = sp.status && sp.status in SupplierStatus ? (sp.status as SupplierStatus) : undefined;
+  const emailFilter = sp.email === "none" || sp.email === "has" ? sp.email : undefined;
+
+  const where: Prisma.SupplierWhereInput = {
+    ...(filter ? { status: filter } : {}),
+    ...(emailFilter === "none" ? { contacts: { none: { email: { not: null } } } } : {}),
+    ...(emailFilter === "has" ? { contacts: { some: { email: { not: null } } } } : {}),
+  };
 
   const suppliers = await prisma.supplier.findMany({
-    where: filter ? { status: filter } : {},
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { brands: true, contacts: true } },
@@ -38,7 +45,7 @@ export default async function SuppliersPage({
         </Link>
       </div>
 
-      <form method="get" className="flex items-center gap-2">
+      <form method="get" className="flex flex-wrap items-center gap-2">
         <Select name="status" defaultValue={filter ?? ""} className="max-w-[200px]">
           <option value="">Все статусы</option>
           {STATUSES.map((s) => (
@@ -46,6 +53,11 @@ export default async function SuppliersPage({
               {s}
             </option>
           ))}
+        </Select>
+        <Select name="email" defaultValue={emailFilter ?? ""} className="max-w-[170px]">
+          <option value="">Email: все</option>
+          <option value="none">Без email</option>
+          <option value="has">С email</option>
         </Select>
         <Button type="submit" variant="outline" size="sm">
           Фильтр

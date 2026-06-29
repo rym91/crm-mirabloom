@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { updateSupplierStatus, addSupplierNote } from "../actions";
+import { updateSupplierStatus, addSupplierNote, addSupplierContact } from "../actions";
 import { EmailThreadBlock } from "./email-thread";
 import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 import { StatusSubmitButton } from "@/components/status-submit-button";
@@ -34,6 +34,9 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
     orderBy: { createdAt: "desc" },
     include: { author: true },
   });
+
+  const cf = (supplier.customFields as { suggestedEmails?: string[] } | null) ?? {};
+  const suggested = Array.isArray(cf.suggestedEmails) ? cf.suggestedEmails.filter(Boolean) : [];
 
   const field = (label: string, value: ReactNode) => (
     <div>
@@ -103,7 +106,7 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
           </CardHeader>
           <CardContent className="space-y-2">
             {supplier.contacts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">—</p>
+              <p className="text-sm text-muted-foreground">Контактов с email пока нет.</p>
             ) : (
               supplier.contacts.map((c) => (
                 <div key={c.id} className="text-sm">
@@ -113,6 +116,37 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
                 </div>
               ))
             )}
+
+            {suggested.length > 0 ? (
+              <div className="rounded-md bg-amber-50 p-2">
+                <div className="mb-1 text-xs font-medium text-amber-800">Найдены на сайте — проверь и добавь:</div>
+                {suggested.map((e) => (
+                  <form key={e} action={addSupplierContact} className="flex items-center justify-between gap-2 py-0.5 text-sm">
+                    <input type="hidden" name="supplierId" value={supplier.id} />
+                    <input type="hidden" name="email" value={e} />
+                    <span className="font-mono text-xs">{e}</span>
+                    <Button type="submit" size="sm" variant="outline" className="h-6">+ добавить</Button>
+                  </form>
+                ))}
+              </div>
+            ) : null}
+
+            <form action={addSupplierContact} className="flex flex-wrap items-center gap-2 border-t pt-2">
+              <input type="hidden" name="supplierId" value={supplier.id} />
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="email поставщика"
+                className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <input
+                name="name"
+                placeholder="имя (необяз.)"
+                className="h-8 w-28 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <Button type="submit" size="sm">Добавить</Button>
+            </form>
           </CardContent>
         </Card>
 
