@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { updateSupplierStatus, addSupplierNote } from "../actions";
 import { EmailThreadBlock } from "./email-thread";
 import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
+import { StatusSubmitButton } from "@/components/status-submit-button";
+import { STATUS_LABEL } from "@/lib/status-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -53,16 +55,14 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
         </div>
         <form action={updateSupplierStatus} className="flex items-center gap-2">
           <input type="hidden" name="id" value={supplier.id} />
-          <Select name="status" defaultValue={supplier.status} className="max-w-[180px]">
+          <Select name="status" defaultValue={supplier.status} className="w-[210px]">
             {Object.values(SupplierStatus).map((s) => (
               <option key={s} value={s}>
-                {s}
+                {STATUS_LABEL[s]}
               </option>
             ))}
           </Select>
-          <Button type="submit" size="sm">
-            Сменить статус
-          </Button>
+          <StatusSubmitButton />
         </form>
       </div>
 

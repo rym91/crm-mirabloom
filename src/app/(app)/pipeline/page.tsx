@@ -24,7 +24,7 @@ const COLUMNS: { key: SupplierStatus; label: string }[] = [
 ];
 
 export default async function PipelinePage() {
-  const [suppliers, users] = await Promise.all([
+  const [suppliers, users, eligibleIntro] = await Promise.all([
     prisma.supplier.findMany({
       orderBy: { updatedAt: "desc" },
       include: {
@@ -34,13 +34,16 @@ export default async function PipelinePage() {
       },
     }),
     prisma.user.findMany({ orderBy: { name: "asc" } }),
+    prisma.supplier.count({
+      where: { status: { in: ["CANDIDATE", "QUALIFIED"] }, optedOut: false, contacts: { some: { email: { not: null } } } },
+    }),
   ]);
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Пайплайн поставщиков</h1>
-        <BulkIntroButton />
+        <BulkIntroButton eligible={eligibleIntro} />
       </div>
       <div className="flex h-[calc(100vh-7rem)] gap-4 overflow-x-auto pb-2">
         {COLUMNS.map((col) => {
