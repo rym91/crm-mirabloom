@@ -21,7 +21,7 @@ const TEMPLATES: { kind: TemplateKind; name: string; subject: string; body: stri
 
 I'm Tetiana from Mirabloom (mirabloom.eu) — a VAT-registered retailer in Spain. We sell through our own store and selected EU marketplaces, where we keep to MAP and brand pricing rules and never undercut authorised prices. We'd like to open a trade account and stock {{brand}}.
 
-A bit about us: we sell across stationery, art & craft and toys, we reorder monthly, and we prefer a steady, repeat account with one distributor rather than one-off orders.
+A bit about us: we carry a broad range of products, we reorder monthly, and we prefer a steady, repeat account with one distributor rather than one-off orders.
 
 To start, could you please send the {{brand}} wholesale terms — price list, minimum order and payment/delivery conditions?
 
