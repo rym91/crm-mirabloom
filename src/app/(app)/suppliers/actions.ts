@@ -5,8 +5,12 @@ import { SupplierStatus, EntityType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/authz";
 import { nextStatusOnSend } from "@/lib/email/route-status";
-import { supplierAlias } from "@/lib/email/alias";
 import { audit } from "@/lib/audit";
+
+/** Ящик, который вставляют в контактную форму поставщика (ответ придёт сюда). */
+function formReplyMailbox(): string {
+  return process.env.SMTP_USER || (process.env.MAIL_FROM || "").match(/[\w.+-]+@[\w.-]+/)?.[0] || "hello@mirabloom.eu";
+}
 
 export async function updateSupplierStatus(formData: FormData) {
   await requireUser();
@@ -65,14 +69,14 @@ export async function logFormOutreach(formData: FormData) {
     });
   }
 
-  const alias = supplierAlias(supplierId);
+  const mailbox = formReplyMailbox();
   await prisma.emailMessage.create({
     data: {
       threadId: thread.id,
       supplierId,
       direction: "OUTBOUND",
       status: "SENT",
-      fromAddress: alias,
+      fromAddress: mailbox,
       toAddress: supplier.contactFormUrl || "(контактная форма)",
       subject: "Отправлено через контактную форму",
       bodyText: note || "Запрос отправлен через контактную форму поставщика.",
@@ -90,12 +94,12 @@ export async function logFormOutreach(formData: FormData) {
   }
   await prisma.note.create({
     data: {
-      body: `Отправлено через контактную форму${note ? ": " + note.slice(0, 200) : ""}. Адрес для ответа: ${alias}`,
+      body: `Отправлено через контактную форму${note ? ": " + note.slice(0, 200) : ""}. Адрес для ответа: ${mailbox} (ответ придёт во «Входящие» — привязать к поставщику).`,
       entityType: EntityType.SUPPLIER,
       entityId: supplierId,
     },
   });
-  await audit("email.form-outreach", { entityType: "SUPPLIER", entityId: supplierId, detail: alias });
+  await audit("email.form-outreach", { entityType: "SUPPLIER", entityId: supplierId, detail: mailbox });
   revalidatePath(`/suppliers/${supplierId}`);
   revalidatePath("/pipeline");
 }

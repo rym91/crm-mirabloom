@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateSupplierStatus, addSupplierNote, addSupplierContact, logFormOutreach } from "../actions";
 import { EmailThreadBlock } from "./email-thread";
-import { supplierAlias } from "@/lib/email/alias";
 import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 import { StatusSubmitButton } from "@/components/status-submit-button";
 import { STATUS_LABEL } from "@/lib/status-labels";
@@ -38,7 +37,7 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
 
   const cf = (supplier.customFields as { suggestedEmails?: string[] } | null) ?? {};
   const suggested = Array.isArray(cf.suggestedEmails) ? cf.suggestedEmails.filter(Boolean) : [];
-  const alias = supplierAlias(supplier.id);
+  const formMailbox = process.env.SMTP_USER || "hello@mirabloom.eu";
 
   const field = (label: string, value: ReactNode) => (
     <div>
@@ -179,10 +178,13 @@ export default async function SupplierDetail({ params }: { params: Promise<{ id:
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
-            Если пишешь поставщику через его контактную форму — вставь в поле email формы этот адрес.
-            Тогда его ответ автоматически подтянется в эту карточку как переписка:
+            Если пишешь поставщику через его контактную форму — в поле email/«ваш адрес» вставь наш ящик:
           </p>
-          <code className="block select-all rounded-md bg-muted p-2 font-mono text-xs">{alias}</code>
+          <code className="block select-all rounded-md bg-muted p-2 font-mono text-xs">{formMailbox}</code>
+          <p className="text-xs text-muted-foreground">
+            Когда поставщик ответит, письмо придёт в раздел «Входящие» — там привяжи его к этой карточке
+            кнопкой «Привязать к поставщику» (один клик).
+          </p>
           {supplier.contactFormUrl ? (
             <a
               href={supplier.contactFormUrl}
