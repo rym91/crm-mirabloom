@@ -19,9 +19,15 @@ const TEMPLATES: { kind: TemplateKind; name: string; subject: string; body: stri
 
 {{opening_hook}}
 
-I'm Tetiana from Mirabloom (mirabloom.eu) — a VAT-registered retailer in Spain selling through our own store and the main EU marketplaces. We'd like to add {{brand}} to our range and become a regular, reordering account.
+I'm Tetiana from Mirabloom (mirabloom.eu) — a VAT-registered retailer in Spain. We sell through our own store and selected EU marketplaces, where we keep to MAP and brand pricing rules and never undercut authorised prices. We'd like to open a trade account and stock {{brand}}.
 
-Could you tell me who looks after wholesale/trade accounts, and send your line sheet or catalogue? We're happy to work within your pricing and channel policies.
+A bit about us: we sell across stationery, art & craft and toys, we reorder monthly, and we prefer a steady, repeat account with one distributor rather than one-off orders.
+
+To start, could you please send the {{brand}} wholesale terms — price list, minimum order and payment/delivery conditions?
+
+One thing for later: we like to consolidate our buying through a single distributor, so it would help to know which other brands and product categories you carry — a simple list is enough at this stage, no need for full pricing. Once we've placed our first {{brand}} order, we'd be glad to look at the lines that fit our store. I understand some brands may be restricted to certain accounts or channels — just tell us which, and we'll leave those out.
+
+Who's the best person to open a {{brand}} trade account with? If sending the {{brand}} pricing first is easiest, that's perfect — we can take it from there.
 
 Kind regards,
 Tetiana Rymarova
