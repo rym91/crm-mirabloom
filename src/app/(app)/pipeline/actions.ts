@@ -20,6 +20,24 @@ export async function moveSupplier(formData: FormData) {
   revalidatePath(`/suppliers/${id}`);
 }
 
+/** Разложить кандидатов: CANDIDATE без email-контакта → QUALIFIED (колонка ручной работы:
+ *  найти/добавить email или заполнить форму). Готовые (с email) остаются в CANDIDATE для рассылки. */
+export async function triageCandidates(_formData?: FormData): Promise<void> {
+  await requireUser();
+  const ids = (
+    await prisma.supplier.findMany({
+      where: { status: "CANDIDATE", optedOut: false, contacts: { none: { email: { not: null } } } },
+      select: { id: true },
+    })
+  ).map((s) => s.id);
+  if (ids.length) {
+    await prisma.supplier.updateMany({ where: { id: { in: ids } }, data: { status: "QUALIFIED" } });
+    await audit("supplier.triage", { actorLabel: "manager", detail: `candidate→qualified (no email): ${ids.length}` });
+  }
+  revalidatePath("/pipeline");
+  revalidatePath("/suppliers");
+}
+
 export async function bulkIntro(_prev: BulkIntroResult | undefined, formData: FormData): Promise<BulkIntroResult> {
   if (!(await currentUser())) return { ok: false, processed: 0, sent: 0, failed: 0, skipped: 0, error: "Не авторизовано" };
   const n = Number(formData.get("limit") ?? 5);

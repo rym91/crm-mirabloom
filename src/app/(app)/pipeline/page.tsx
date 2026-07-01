@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { moveSupplier, tagManager } from "./actions";
+import { moveSupplier, tagManager, triageCandidates } from "./actions";
 import { BulkIntroButton } from "@/components/bulk-intro-button";
 import { SupplierSignals, hasNewReply } from "@/components/supplier-signals";
 
@@ -12,12 +12,12 @@ export const dynamic = "force-dynamic";
 
 const COLUMNS: { key: SupplierStatus; label: string }[] = [
   { key: "CANDIDATE", label: "Кандидат" },
-  { key: "QUALIFIED", label: "Квалифицирован" },
+  { key: "QUALIFIED", label: "Квалиф. — email/форма" },
   { key: "CONTACTED", label: "Запрос отправлен" },
   { key: "REPLIED", label: "Ответил" },
   { key: "QUOTED", label: "Прислал прайс" },
-  { key: "NEGOTIATING", label: "Переговоры" },
-  { key: "ACTIVE", label: "Работаем" },
+  { key: "NEGOTIATING", label: "Жду доступ на сайт" },
+  { key: "ACTIVE", label: "Проверяем прайс" },
   { key: "MANUAL_REVIEW", label: "Ручная проверка" },
   { key: "ON_HOLD", label: "Пауза" },
   { key: "REJECTED", label: "Отклонён" },
@@ -35,7 +35,7 @@ export default async function PipelinePage() {
     }),
     prisma.user.findMany({ orderBy: { name: "asc" } }),
     prisma.supplier.count({
-      where: { status: { in: ["CANDIDATE", "QUALIFIED"] }, optedOut: false, contacts: { some: { email: { not: null } } } },
+      where: { status: "CANDIDATE", optedOut: false, contacts: { some: { email: { not: null } } } },
     }),
   ]);
 
@@ -43,7 +43,14 @@ export default async function PipelinePage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Пайплайн поставщиков</h1>
-        <BulkIntroButton eligible={eligibleIntro} />
+        <div className="flex items-center gap-2">
+          <form action={triageCandidates}>
+            <Button type="submit" variant="outline" size="sm" title="Кандидатов без email перенести в «Квалиф. — email/форма»">
+              Разложить кандидатов
+            </Button>
+          </form>
+          <BulkIntroButton eligible={eligibleIntro} />
+        </div>
       </div>
       <div className="flex h-[calc(100vh-7rem)] gap-4 overflow-x-auto pb-2">
         {COLUMNS.map((col) => {
